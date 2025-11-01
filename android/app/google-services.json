@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "557982579011",
+    "project_id": "cepattanggap-1b143",
+    "storage_bucket": "cepattanggap-1b143.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:557982579011:android:4295399800389ac65cd7f6",
+        "android_client_info": {
+          "package_name": "com.example.cepattanggap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD-6ELErVu--hBJe1UM8IRbt01Umv5HFEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
