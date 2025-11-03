@@ -1,5 +1,6 @@
 package com.example.cepattanggap
 
+import android.app.ActivityManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -15,7 +16,7 @@ import com.google.firebase.messaging.RemoteMessage
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
 
-    private val CHANNEL_ID = "emergency_channel_v2" // ubah nama channel baru
+    private val CHANNEL_ID = "emergency_channel_v2"
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         val data = remoteMessage.data
@@ -23,21 +24,48 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         val title = data["title"] ?: "🚨 Emergency!"
         val message = data["message"] ?: "Segera lakukan tindakan!"
 
-         if (type == "emergency") {
-        createNotificationChannel()
-        showEmergencyNotification(title, message)
+        // 🔍 Log debugging
+        android.util.Log.d("FCM_DEBUG", "📩 Data diterima: $data")
+        android.util.Log.d("FCM_DEBUG", "➡️ Type: $type")
 
-        // ✅ Getar terus
-        val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
-        val pattern = longArrayOf(0, 1000, 500, 1000)
-        val repeatIndex = 0
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val effect = android.os.VibrationEffect.createWaveform(pattern, repeatIndex)
-            vibrator.vibrate(effect)
-        } else {
-            vibrator.vibrate(pattern, repeatIndex)
+        if (type == "emergency") {
+
+            // 🚫 Cek apakah app sedang foreground
+            if (isAppInForeground(this)) {
+                android.util.Log.d("FCM_DEBUG", "📱 App sedang foreground — tidak tampilkan notifikasi.")
+                return
+            }
+
+            android.util.Log.d("FCM_DEBUG", "📴 App background — tampilkan notifikasi.")
+            createNotificationChannel()
+            showEmergencyNotification(title, message)
+
+            // ✅ Getar terus
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
+            val pattern = longArrayOf(0, 1000, 500, 1000)
+            val repeatIndex = 0
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val effect = android.os.VibrationEffect.createWaveform(pattern, repeatIndex)
+                vibrator.vibrate(effect)
+            } else {
+                vibrator.vibrate(pattern, repeatIndex)
+            }
         }
     }
+
+    // 🔍 Fungsi untuk cek apakah app sedang aktif (foreground)
+    private fun isAppInForeground(context: Context): Boolean {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val appProcesses = activityManager.runningAppProcesses ?: return false
+
+        for (appProcess in appProcesses) {
+            if (appProcess.importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND &&
+                appProcess.processName == context.packageName
+            ) {
+                return true
+            }
+        }
+        return false
     }
 
     private fun createNotificationChannel() {
@@ -56,7 +84,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
                 enableVibration(true)
-                vibrationPattern = longArrayOf(0, 1000, 500, 1000, 500, 1000) // getar panjang terus
+                vibrationPattern = longArrayOf(0, 1000, 500, 1000)
                 enableLights(true)
                 lightColor = Color.RED
                 setSound(soundUri, audioAttributes)
@@ -89,10 +117,11 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setColor(Color.RED)
-            .setOngoing(true) // biar tetap aktif sampai ditekan
+            .setOngoing(true)
             .setAutoCancel(true)
             .setSound(soundUri)
-            .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000))
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setVibrate(longArrayOf(0, 1000, 500, 1000))
             .setContentIntent(pendingIntent)
 
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

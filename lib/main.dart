@@ -52,16 +52,20 @@ class _FullScreenAlertPageState extends State<FullScreenAlertPage> {
     super.dispose();
   }
 
+    void _stopAlert() {
+    _player.stop();
+    Vibration.cancel();
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.red[700],
-      body: GestureDetector(
-        onTap: () {
-          _player.stop(); // hentikan suara alarm
-          Navigator.pop(context); // tutup halaman
-        },
-        child: Center(
+    return GestureDetector(
+      onTap: _stopAlert, // <-- seluruh layar bisa di-tap
+      behavior: HitTestBehavior.opaque, // penting supaya area kosong juga responsif
+      child: Scaffold(
+        backgroundColor: Colors.red[700],
+        body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
             child: Column(
@@ -73,12 +77,13 @@ class _FullScreenAlertPageState extends State<FullScreenAlertPage> {
                   height: 180,
                   fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 5),
+                const SizedBox(height: 10),
                 Text(
                   "Peringatan ${widget.title} !",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontSize: 20),
+                  style: const TextStyle(color: Colors.white, fontSize: 22),
                 ),
+                const SizedBox(height: 6),
                 Text(
                   widget.message,
                   textAlign: TextAlign.center,
@@ -91,6 +96,7 @@ class _FullScreenAlertPageState extends State<FullScreenAlertPage> {
       ),
     );
   }
+
 }
 
 void main() async {
