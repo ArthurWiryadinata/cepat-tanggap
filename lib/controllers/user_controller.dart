@@ -46,7 +46,16 @@ class UserController extends GetxController {
     // 1️⃣ Cek apakah layanan lokasi aktif
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Get.snackbar('Error', 'Layanan lokasi tidak aktif');
+      Get.defaultDialog(
+        title: "Lokasi Tidak Aktif",
+        middleText: "Silakan aktifkan layanan lokasi (GPS) untuk melanjutkan.",
+        textConfirm: "Aktifkan",
+        textCancel: "Batal",
+        onConfirm: () {
+          Geolocator.openLocationSettings();
+          Get.back();
+        },
+      );
       return;
     }
 
@@ -55,7 +64,17 @@ class UserController extends GetxController {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        Get.snackbar('Error', 'Izin lokasi ditolak');
+        Get.defaultDialog(
+          title: "Izin Diperlukan",
+          middleText:
+              "Aplikasi membutuhkan akses lokasi. Aktifkan izin lokasi di pengaturan.",
+          textConfirm: "Buka Pengaturan",
+          textCancel: "Batal",
+          onConfirm: () {
+            Geolocator.openAppSettings();
+            Get.back();
+          },
+        );
         return;
       }
     }
@@ -110,7 +129,7 @@ class UserController extends GetxController {
           golDarah.value.isEmpty ||
           jenisKelamin.value.isEmpty) {
         showAppSnackbar(
-          'Error',
+          'Gagal Membuat akun',
           'Harap isi semua data dengan lengkap!',
           isSuccess: false,
         );
@@ -164,23 +183,24 @@ class UserController extends GetxController {
     } on FirebaseAuthException catch (e) {
       // 🔹 Tangani error Firebase Auth
       switch (e.code) {
-        case 'weak-password':
-          showAppSnackbar('Error', 'Password terlalu lemah', isSuccess: false);
-          break;
         case 'email-already-in-use':
-          showAppSnackbar('Error', 'Email sudah digunakan', isSuccess: false);
+          showAppSnackbar(
+            'Gagal Membuat akun',
+            'Email sudah terdaftar',
+            isSuccess: false,
+          );
           break;
         case 'invalid-email':
           showAppSnackbar(
-            'Error',
+            'Gagal Membuat akun',
             'Format email tidak valid',
             isSuccess: false,
           );
           break;
         default:
           showAppSnackbar(
-            'Error',
-            'Terjadi kesalahan: ${e.message}',
+            'Gagal Membuat akun',
+            'Terjadi kesalahan pada sistem',
             isSuccess: false,
           );
       }
@@ -203,10 +223,11 @@ class UserController extends GetxController {
     if (loginEmailController.text.isEmpty ||
         loginPasswordController.text.isEmpty) {
       showAppSnackbar(
-        'Error',
+        'Gagal Login',
         'Email dan password wajib diisi',
         isSuccess: false,
       );
+      isLoading.value = false;
       return;
     }
     if (userLat.value == 0.0 && userLong.value == 0.0) {
@@ -233,6 +254,8 @@ class UserController extends GetxController {
           .update({
             'userFCM': fcmToken ?? '',
             'userLocation': GeoPoint(userLat.value, userLong.value),
+            'userProvince': userProvince.value,
+            'userKota': userKota.value,
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
@@ -243,18 +266,26 @@ class UserController extends GetxController {
       Get.off(MainPage()); // 🔹 Pindah ke halaman utama
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        showAppSnackbar('Error', 'Akun tidak ditemukan', isSuccess: false);
+        showAppSnackbar(
+          'Gagal Login',
+          'Akun tidak ditemukan',
+          isSuccess: false,
+        );
       } else if (e.code == 'wrong-password') {
-        showAppSnackbar('Error', 'Password salah', isSuccess: false);
+        showAppSnackbar('Gagal Login', 'Password salah', isSuccess: false);
       } else {
         showAppSnackbar(
-          'Error',
-          'Terjadi kesalahan: ${e.code}',
+          'Gagal Login',
+          'Akun tidak ditemukan',
           isSuccess: false,
         );
       }
     } catch (e) {
-      showAppSnackbar('Error', 'Gagal login: $e', isSuccess: false);
+      showAppSnackbar(
+        'Gagal Login',
+        'Terjadi kesalahan pada sistem',
+        isSuccess: false,
+      );
     } finally {
       isLoading.value = false; // ✅ Akhiri loading
     }

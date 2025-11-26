@@ -75,7 +75,7 @@ class SignupPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 0),
-                          const Text("Please fill out to continue"),
+                          const Text("Silahkan isi untuk melanjutkan"),
                           const SizedBox(height: 15),
                           CustomTextField(
                             label: "Email*",
@@ -293,7 +293,7 @@ class SignupPage extends StatelessWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const Text("Already have an account? "),
+                                    const Text("Sudah memiliki account? "),
                                     GestureDetector(
                                       onTap: () {
                                         Get.to(LoginPage());

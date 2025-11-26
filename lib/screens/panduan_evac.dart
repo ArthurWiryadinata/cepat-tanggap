@@ -18,7 +18,7 @@ class PanduanEvac extends StatelessWidget {
     return Scaffold(
       body: Padding(
         padding: EdgeInsets.only(
-          top: Get.mediaQuery.padding.top + 5,
+          top: Get.mediaQuery.padding.top,
           bottom: Get.mediaQuery.padding.bottom,
           left: 12,
           right: 12,
@@ -35,7 +35,10 @@ class PanduanEvac extends StatelessWidget {
                   child: Center(
                     child: Text(
                       "PANDUAN KESELAMATAN ${title.toUpperCase()}",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),

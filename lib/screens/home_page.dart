@@ -1,5 +1,8 @@
 import 'package:cepattanggap/controllers/information_controller.dart';
+import 'package:cepattanggap/controllers/panduan_evac_controller.dart';
 import 'package:cepattanggap/controllers/sos_controller.dart';
+import 'package:cepattanggap/screens/panduan_evac.dart';
+import 'package:cepattanggap/widgets/snack_bar_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -17,7 +20,7 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       body: Padding(
         padding: EdgeInsets.only(
-          top: Get.mediaQuery.padding.top + 5,
+          top: Get.mediaQuery.padding.top,
           bottom: 5,
           left: 12,
           right: 12,
@@ -25,7 +28,10 @@ class HomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Hi, ${username}!"),
+            Text(
+              "Hi, ${username}!",
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 5),
             Container(
               width: double.infinity,
@@ -229,19 +235,26 @@ class HomePage extends StatelessWidget {
                             ),
                             const SizedBox(height: 10),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                DisasterCard(
-                                  imagePath: 'assets/images/gempa.png',
-                                  label: 'Gempa',
+                                Expanded(
+                                  child: DisasterCard(
+                                    imagePath: 'assets/images/gempa.png',
+                                    label: 'Gempa',
+                                  ),
                                 ),
-                                DisasterCard(
-                                  imagePath: 'assets/images/banjir.png',
-                                  label: 'Banjir',
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: DisasterCard(
+                                    imagePath: 'assets/images/banjir.png',
+                                    label: 'Banjir',
+                                  ),
                                 ),
-                                DisasterCard(
-                                  imagePath: 'assets/images/api.png',
-                                  label: 'Kebakaran',
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: DisasterCard(
+                                    imagePath: 'assets/images/api.png',
+                                    label: 'Kebakaran',
+                                  ),
                                 ),
                               ],
                             ),
@@ -370,10 +383,27 @@ class DisasterCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final panduanEvacController = Get.put(PanduanEvacController());
+
     return GestureDetector(
-      onTap: onTap, // biar bisa diklik kalau nanti dibutuhkan
+      onTap: () async {
+        // ambil data
+        final panduan = await panduanEvacController.fetchPanduan(label);
+
+        // cek kosong
+        if (panduan.panduanDalam.isEmpty && panduan.panduanLuar.isEmpty) {
+          showAppSnackbar(
+            'Data belum tersedia',
+            'Data keselamatan belum tersedia',
+            isSuccess: false,
+          );
+          return;
+        }
+
+        // kalau ada navigasi
+        Get.to(() => PanduanEvac(title: label, panduan: panduan));
+      },
       child: Container(
-        width: 115,
         height: 110,
         decoration: BoxDecoration(
           color: const Color(0xFFF2F2F2),

@@ -1,4 +1,3 @@
-
 import 'package:cepattanggap/controllers/profile_controller.dart';
 
 import 'package:flutter/material.dart';
@@ -13,7 +12,7 @@ class ProfilePage extends StatelessWidget {
     return Scaffold(
       body: Padding(
         padding: EdgeInsets.only(
-          top: Get.mediaQuery.padding.top + 5,
+          top: Get.mediaQuery.padding.top,
           bottom: 24,
           left: 12,
           right: 12,
@@ -21,7 +20,10 @@ class ProfilePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Hi, ${username}!"),
+            Text(
+              "Hi, ${username}!",
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
             SizedBox(height: 15),
             Container(
               decoration: BoxDecoration(

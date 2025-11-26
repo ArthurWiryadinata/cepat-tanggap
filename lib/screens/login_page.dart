@@ -69,7 +69,7 @@ class LoginPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 0),
-                    const Text("Please fill out to continue"),
+                    const Text("Silahkan isi untuk melanjutkan"),
                     const SizedBox(height: 15),
                     const Text("Email"),
                     Container(
@@ -125,7 +125,7 @@ class LoginPage extends StatelessWidget {
                             ),
                             onPressed:
                                 controller.isLoading.value
-                                    ? null // disable tombol saat loading
+                                    ? null 
                                     : () {
                                       controller.loginUser();
                                     },
@@ -154,7 +154,7 @@ class LoginPage extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text("Doesn’t have an account yet? "),
+                        const Text("Belum memiliki account? "),
                         GestureDetector(
                           onTap: () {
                             Get.to(SignupPage());

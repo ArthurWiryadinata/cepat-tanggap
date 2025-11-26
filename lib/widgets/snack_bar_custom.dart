@@ -16,7 +16,7 @@ void showAppSnackbar(String title, String message, {bool isSuccess = true}) {
     colorText: Colors.white,
     snackPosition: SnackPosition.TOP,
     borderRadius: 16,
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+    margin: const EdgeInsets.symmetric(horizontal: 16),
     padding: const EdgeInsets.all(16),
 
     // 🧩 Tambahkan shadow biar lebih menarik

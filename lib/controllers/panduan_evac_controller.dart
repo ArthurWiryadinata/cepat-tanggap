@@ -16,14 +16,4 @@ class PanduanEvacController extends GetxController {
       return PanduanBencana(panduanDalam: [], panduanLuar: []);
     }
   }
-
-  // Future<List<PanduanItem>> fetchPanduanDalam(String id) async {
-  //   final panduan = await fetchPanduan(id);
-  //   return panduan.panduanDalam;
-  // }
-
-  // Future<List<PanduanItem>> fetchPanduanLuar(String id) async {
-  //   final panduan = await fetchPanduan(id);
-  //   return panduan.panduanLuar;
-  // }
 }

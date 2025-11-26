@@ -1,6 +1,7 @@
 import 'package:cepattanggap/controllers/nav_bar_controller.dart';
 import 'package:cepattanggap/models/user_model.dart';
 import 'package:cepattanggap/screens/login_page.dart';
+import 'package:cepattanggap/widgets/snack_bar_custom.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
@@ -37,22 +38,31 @@ class ProfileController extends GetxController {
     try {
       final user = _auth.currentUser;
       if (user != null) {
-        // Update lastUpdated sebelum logout
         await _firestore.collection('users').doc(user.uid).update({
           'lastUpdated': Timestamp.now(),
         });
       }
 
-      // Logout dari Firebase
       await _auth.signOut();
 
       // Hapus controller agar state bersih
       Get.delete<ProfileController>();
       Get.delete<NavBarController>();
 
+      // Snackbar sukses
+      showAppSnackbar(
+        'Berhasil Logout',
+        'Berhasil keluar dari akun',
+        isSuccess: true,
+      );
+
       Get.offAll(() => LoginPage());
     } catch (e) {
-      print("❌ Gagal logout: $e");
+      showAppSnackbar(
+        'Gagal Logout',
+        'Gagal keluar dari akun',
+        isSuccess: false,
+      );
     }
   }
 }

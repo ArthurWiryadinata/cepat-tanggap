@@ -23,7 +23,7 @@ exports.sendEmergencyAlert = onDocumentCreated(
           message: data.message || "Emergency Alert",
         },
         android: {
-          priority: "high", // Penting! Harus high priority
+          priority: "high", 
         },
         apns: {
           payload: {

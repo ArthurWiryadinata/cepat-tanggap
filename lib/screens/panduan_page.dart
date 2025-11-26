@@ -1,5 +1,6 @@
 import 'package:cepattanggap/controllers/panduan_evac_controller.dart';
 import 'package:cepattanggap/screens/panduan_evac.dart';
+import 'package:cepattanggap/widgets/snack_bar_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,7 +12,7 @@ class PanduanPage extends StatelessWidget {
     return Scaffold(
       body: Padding(
         padding: EdgeInsets.only(
-          top: Get.mediaQuery.padding.top + 5,
+          top: Get.mediaQuery.padding.top,
           bottom: 24,
           left: 12,
           right: 12,
@@ -66,6 +67,17 @@ class DisasterCard extends StatelessWidget {
         onTap: () async {
           final panduan = await panduanEvacController.fetchPanduan(title);
 
+          // jika keduanya kosong
+          if (panduan.panduanDalam.isEmpty && panduan.panduanLuar.isEmpty) {
+            showAppSnackbar(
+              'Data belum tersedia',
+              'Data keselamatan belum tersedia',
+              isSuccess: false,
+            );
+            return; // jangan lanjut ke halaman berikutnya
+          }
+
+          // jika data ada, baru navigate
           Get.to(() => PanduanEvac(title: title, panduan: panduan));
         },
 
