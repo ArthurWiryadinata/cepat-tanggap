@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 const platform = MethodChannel('com.example.cepattanggap/channel');
 
@@ -41,6 +42,7 @@ void main() async {
       );
     }
   });
+  await initializeDateFormatting('id_ID', null);
 
   runApp(const MyApp());
 }
