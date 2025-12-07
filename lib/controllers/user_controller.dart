@@ -39,52 +39,27 @@ class UserController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// 🧭 Ambil lokasi user + izin lokasi
-  Future<void> getUserLocation() async {
+  Future<bool> getUserLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // 1️⃣ Cek apakah layanan lokasi aktif
+    // 1️⃣ Cek GPS aktif
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Get.defaultDialog(
-        title: "Lokasi Tidak Aktif",
-        middleText: "Silakan aktifkan layanan lokasi (GPS) untuk melanjutkan.",
-        textConfirm: "Aktifkan",
-        textCancel: "Batal",
-        onConfirm: () {
-          Geolocator.openLocationSettings();
-          Get.back();
-        },
-      );
-      return;
+      await Geolocator.openLocationSettings(); // langsung masuk ke halaman GPS
+      return false;
     }
 
-    // 2️⃣ Minta izin lokasi
+    // 2️⃣ Izin Lokasi
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        Get.defaultDialog(
-          title: "Izin Diperlukan",
-          middleText:
-              "Aplikasi membutuhkan akses lokasi. Aktifkan izin lokasi di pengaturan.",
-          textConfirm: "Buka Pengaturan",
-          textCancel: "Batal",
-          onConfirm: () {
-            Geolocator.openAppSettings();
-            Get.back();
-          },
-        );
-        return;
-      }
+      if (permission == LocationPermission.denied) return false;
     }
 
-    if (permission == LocationPermission.deniedForever) {
-      Get.snackbar('Error', 'Izin lokasi ditolak permanen');
-      return;
-    }
+    if (permission == LocationPermission.deniedForever) return false;
 
-    // 3️⃣ Ambil lokasi
+    // 3️⃣ Ambil Lokasi
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -92,10 +67,10 @@ class UserController extends GetxController {
     userLat.value = position.latitude;
     userLong.value = position.longitude;
 
-    print('Latitude: ${userLat.value}, Longitude: ${userLong.value}');
-
-    // 4️⃣ Ambil nama provinsi & kota dari koordinat
+    // 4️⃣ Ambil nama lokasi
     await getAddressFromLatLong(userLat.value, userLong.value);
+
+    return true; // ⬅ WAJIB ADA
   }
 
   /// 🌍 Ambil provinsi & kota dari lat/long
@@ -231,7 +206,11 @@ class UserController extends GetxController {
       return;
     }
     if (userLat.value == 0.0 && userLong.value == 0.0) {
-      await getUserLocation();
+      bool lokasiOK = await getUserLocation();
+      if (!lokasiOK) {
+        isLoading.value = false;
+        return; // ⛔ stop login
+      }
     }
 
     try {
