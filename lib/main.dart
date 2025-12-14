@@ -1,6 +1,8 @@
 import 'package:cepattanggap/firebase_options.dart';
 import 'package:cepattanggap/screens/alert_page.dart';
 import 'package:cepattanggap/screens/login_page.dart';
+import 'package:cepattanggap/screens/main_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -82,7 +84,8 @@ class _MyAppState extends State<MyApp> {
           fontSizeFactor: 0.9, // ⬅️ Kurangi ukuran semua teks 10%
         ),
       ),
-      home: LoginPage(),
+      home:
+          FirebaseAuth.instance.currentUser == null ? LoginPage() : MainPage(),
     );
   }
 }

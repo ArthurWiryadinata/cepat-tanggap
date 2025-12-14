@@ -1,3 +1,4 @@
+import 'package:cepattanggap/controllers/location_controller.dart';
 import 'package:cepattanggap/controllers/nav_bar_controller.dart';
 import 'package:cepattanggap/widgets/nav_bar.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +6,12 @@ import 'package:get/get.dart';
 
 class MainPage extends StatelessWidget {
   MainPage({super.key});
+
   final NavBarController navController = Get.put(NavBarController());
+  final LocationController locationController = Get.put(
+    LocationController(),
+    permanent: true,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +24,7 @@ class MainPage extends StatelessWidget {
             navController.selectedIndex.value = index;
           },
         ),
-        
       ),
     );
-    
   }
-  
 }
