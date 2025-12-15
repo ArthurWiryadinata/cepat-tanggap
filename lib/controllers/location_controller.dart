@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cepattanggap/widgets/snack_bar_custom.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
@@ -47,7 +48,11 @@ class LocationController extends GetxController {
   Future<bool> _checkPermission() async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Get.snackbar('GPS Tidak Aktif', 'Silakan aktifkan layanan lokasi');
+      showAppSnackbar(
+        'GPS Tidak Aktif',
+        'Silakan aktifkan layanan lokasi',
+        isSuccess: false,
+      );
       return false;
     }
 
@@ -61,7 +66,11 @@ class LocationController extends GetxController {
     }
 
     if (permission == LocationPermission.deniedForever) {
-      Get.snackbar('Permission Ditolak', 'Aktifkan izin lokasi di pengaturan');
+      showAppSnackbar(
+        'Akses Ditolak',
+        'Aktifkan izin lokasi di pengaturan',
+        isSuccess: false,
+      );
       return false;
     }
 

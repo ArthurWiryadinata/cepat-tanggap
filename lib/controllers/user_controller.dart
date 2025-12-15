@@ -26,8 +26,6 @@ class UserController extends GetxController {
   // Reactive location values
   var userLat = 0.0.obs;
   var userLong = 0.0.obs;
-  var userProvince = ''.obs;
-  var userKota = ''.obs;
 
   final loginEmailController = TextEditingController();
   final loginPasswordController = TextEditingController();
@@ -67,29 +65,10 @@ class UserController extends GetxController {
     userLat.value = position.latitude;
     userLong.value = position.longitude;
 
-    // 4️⃣ Ambil nama lokasi
-    await getAddressFromLatLong(userLat.value, userLong.value);
-
     return true; // ⬅ WAJIB ADA
   }
 
   /// 🌍 Ambil provinsi & kota dari lat/long
-  Future<void> getAddressFromLatLong(double lat, double long) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, long);
-
-      if (placemarks.isNotEmpty) {
-        final Placemark place = placemarks.first;
-        userProvince.value = place.administrativeArea ?? '';
-        userKota.value = place.locality ?? place.subAdministrativeArea ?? '';
-        print('📍 Kota: ${userKota.value}, Provinsi: ${userProvince.value}');
-      } else {
-        print('❌ Tidak ada hasil geocoding.');
-      }
-    } catch (e) {
-      print('❌ Gagal mendapatkan alamat: $e');
-    }
-  }
 
   Future<void> registerUser() async {
     if (isLoading.value) return;
@@ -135,8 +114,6 @@ class UserController extends GetxController {
         alergiObat: alergiController.text.trim(),
         userAlamat: alamatController.text.trim(),
         userPhone: kontakController.text.trim(),
-        userProvince: userProvince.value,
-        userKota: userKota.value,
         userSex: jenisKelamin.value,
         userFCM: fcmToken ?? '',
         userLocation: GeoPoint(userLat.value, userLong.value),
@@ -209,23 +186,19 @@ class UserController extends GetxController {
       bool lokasiOK = await getUserLocation();
       if (!lokasiOK) {
         isLoading.value = false;
-        return; // ⛔ stop login
+        return;
       }
     }
 
     try {
-      isLoading.value = true; // ⏳ Mulai loading
+      isLoading.value = true;
 
-      // 🔹 Login ke Firebase Auth
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: loginEmailController.text.trim(),
         password: loginPasswordController.text.trim(),
       );
 
-      // 🔹 Dapatkan FCM terbaru (optional tapi direkomendasikan)
       final fcmToken = await FirebaseMessaging.instance.getToken();
-
-      // 🔹 Update data di Firestore (terutama lastUpdated dan FCM)
 
       await _firestore
           .collection('users')
@@ -233,8 +206,6 @@ class UserController extends GetxController {
           .update({
             'userFCM': fcmToken ?? '',
             'userLocation': GeoPoint(userLat.value, userLong.value),
-            'userProvince': userProvince.value,
-            'userKota': userKota.value,
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
@@ -270,6 +241,8 @@ class UserController extends GetxController {
     }
   }
 
+  
+
   void clearForm() {
     emailController.clear();
     usernameController.clear();
@@ -278,16 +251,12 @@ class UserController extends GetxController {
     kontakController.clear();
     penyakitController.clear();
     alergiController.clear();
-
     loginEmailController.clear();
     loginPasswordController.clear();
-
     golDarah.value = '';
     jenisKelamin.value = '';
     userLat.value = 0.0;
     userLong.value = 0.0;
-    userProvince.value = '';
-    userKota.value = '';
   }
 
   @override

@@ -9,8 +9,7 @@ class UserModel {
   final String alergiObat;
   final String userAlamat;
   final String userPhone;
-  final String userProvince;
-  final String userKota;
+
   final String userSex;
   final String userFCM;
   final GeoPoint userLocation;
@@ -26,8 +25,7 @@ class UserModel {
     required this.alergiObat,
     required this.userAlamat,
     required this.userPhone,
-    required this.userProvince,
-    required this.userKota,
+
     required this.userSex,
     required this.userFCM,
     required this.userLocation,
@@ -47,8 +45,7 @@ class UserModel {
       alergiObat: data['alergiObat'] ?? '-',
       userAlamat: data['userAlamat'] ?? '-',
       userPhone: data['userPhone'] ?? '',
-      userProvince: data['userProvince'] ?? '',
-      userKota: data['userKota'] ?? '',
+
       userSex: data['userSex'] ?? '',
       userFCM: data['userFCM'] ?? '',
       userLocation: data['userLocation'] ?? const GeoPoint(0, 0),
@@ -67,8 +64,7 @@ class UserModel {
       'alergiObat': alergiObat,
       'userAlamat': userAlamat,
       'userPhone': userPhone,
-      'userProvince': userProvince,
-      'userKota': userKota,
+
       'userSex': userSex,
       'userFCM': userFCM,
       'userLocation': userLocation,
