@@ -2,6 +2,7 @@ import 'package:cepattanggap/controllers/profile_controller.dart';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get/get_connect/http/src/utils/utils.dart';
 
 class ProfilePage extends StatelessWidget {
   final String username;
@@ -91,9 +92,51 @@ class ProfilePage extends StatelessWidget {
                 elevation: 6,
                 shadowColor: Colors.black.withOpacity(0.8),
               ),
-              onPressed: () async {
-                await profileController.logoutUser();
+              onPressed: () {
+                Get.dialog(
+                  AlertDialog(
+                    title: const Center(child: Text("Konfirmasi Logout")),
+                    content: const Text(
+                      "Apakah kamu yakin ingin logout?\nKamu bisa login kembali",
+                      textAlign: TextAlign.center,
+                    ),
+                    actions: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Get.back(),
+                              child: const Text(
+                                "Tidak",
+                                style: TextStyle(color: Colors.black),
+                              ),
+                            ),
+                          ),
+
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              onPressed: () async {
+                                Get.back();
+                                await profileController.logoutUser();
+                              },
+                              child: const Text("Ya, Yakin"),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
               },
+
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
