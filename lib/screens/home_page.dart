@@ -9,7 +9,8 @@ import 'package:cepattanggap/screens/panduan_evac.dart';
 import 'package:cepattanggap/widgets/snack_bar_custom.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomePage extends StatefulWidget {
   final String username;
@@ -368,14 +369,14 @@ class _HomePageState extends State<HomePage> {
                                     label: 'Gempa',
                                   ),
                                 ),
-                                SizedBox(width: 12),
+                                SizedBox(width: 5),
                                 Expanded(
                                   child: DisasterCard(
                                     imagePath: 'assets/images/banjir.png',
                                     label: 'Banjir',
                                   ),
                                 ),
-                                SizedBox(width: 12),
+                                SizedBox(width: 5),
                                 Expanded(
                                   child: DisasterCard(
                                     imagePath: 'assets/images/api.png',
@@ -388,72 +389,169 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     ),
-
-                    const SizedBox(height: 15),
-
-                    // CUACA HARI INI
-                    Obx(() {
-                      if (weatherController.isLoading.value) {
-                        return _buildWeatherLoadingCard();
-                      }
-
-                      if (weatherController.errorMessage.value.isNotEmpty) {
-                        return _buildWeatherErrorCard(
-                          weatherController.errorMessage.value,
-                        );
-                      }
-
-                      if (weatherController.weatherData.value == null) {
-                        return _buildWeatherErrorCard(
-                          'Data cuaca tidak tersedia',
-                        );
-                      }
-
-                      return _buildWeatherCard(
-                        weatherController.weatherData.value!,
-                      );
-                    }),
-
-                    const SizedBox(height: 15),
-
-                    // BERITA BENCANA
-                    FutureBuilder<List<Map<String, String>>>(
-                      future: informationController.fetchDisasterNews(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                          return const Center(child: Text('Tidak ada berita'));
-                        }
-
-                        final newsList = snapshot.data!;
-                        return ListView.builder(
-                          padding: const EdgeInsets.all(0),
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: newsList.length,
-                          itemBuilder: (context, index) {
-                            final news = newsList[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(
-                                vertical: 8,
-                                horizontal: 16,
+                    SizedBox(height: 15),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey, width: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 0.1,
+                            blurRadius: 6,
+                            offset: const Offset(4, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Cuaca hari ini",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
-                              child: ListTile(
-                                leading: const Icon(Icons.newspaper),
-                                title: Text(news['title']!),
-                                subtitle: Text(
-                                  '${news['source']} • ${news['pubDate']}',
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: Center(
+                                    child: Text(
+                                      "24",
+                                      style: TextStyle(
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                                 ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    children: [
+                                      Image.asset('assets/images/berawan.png'),
+                                      const SizedBox(height: 5),
+                                      const Text("Berawan"),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 15),
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey, width: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            spreadRadius: 0.1,
+                            blurRadius: 6,
+                            offset: const Offset(4, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+
+                          children: [
+                            Text(
+                              "Berita bencana terkini,",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
-                            );
-                          },
-                        );
-                      },
+                            ),
+                            Text(
+                              "${DateFormat("dd MMMM yyyy", "id_ID").format(DateTime.now())}",
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 15),
+                            FutureBuilder<List<Map<String, String>>>(
+                              future: informationController.fetchDisasterNews(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.isEmpty) {
+                                  return Center(
+                                    child: Text('Tidak ada berita'),
+                                  );
+                                }
+
+                                final newsList = snapshot.data!;
+                                return ListView.builder(
+                                  padding: EdgeInsets.all(0),
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemCount: newsList.length,
+                                  itemBuilder: (context, index) {
+                                    final news = newsList[index];
+                                    return Card(
+                                      color: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        side: BorderSide(
+                                          color: Colors.grey.shade300,
+                                          width: 0.5,
+                                        ),
+                                      ),
+                                      elevation: 4,
+                                      shadowColor: Colors.black.withOpacity(
+                                        0.2,
+                                      ),
+                                      child: ListTile(
+                                        onTap: () {
+                                          final url = news['sourceUrl']!;
+                                          launchUrl(
+                                            Uri.parse(url),
+                                            mode:
+                                                LaunchMode.externalApplication,
+                                          );
+                                        },
+
+                                        leading: Icon(Icons.newspaper),
+                                        title: Text(
+                                          news['title']!,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        subtitle: Text(
+                                          "Dipublikasi oleh: ${news['source']!}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

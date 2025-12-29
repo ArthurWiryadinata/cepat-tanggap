@@ -1,6 +1,8 @@
 import 'package:cepattanggap/firebase_options.dart';
 import 'package:cepattanggap/screens/alert_page.dart';
 import 'package:cepattanggap/screens/login_page.dart';
+import 'package:cepattanggap/screens/main_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cepattanggap/controllers/iot_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -8,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 const platform = MethodChannel('com.example.cepattanggap/channel');
 
@@ -42,6 +45,7 @@ void main() async {
       );
     }
   });
+  await initializeDateFormatting('id_ID', null);
 
   runApp(const MyApp());
 }
@@ -92,7 +96,8 @@ class _MyAppState extends State<MyApp> {
           baseTextTheme,
         ).apply(fontSizeFactor: 0.9),
       ),
-      home: LoginPage(),
+      home:
+          FirebaseAuth.instance.currentUser == null ? LoginPage() : MainPage(),
     );
   }
 }

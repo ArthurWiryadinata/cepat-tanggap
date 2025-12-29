@@ -26,8 +26,6 @@ class UserController extends GetxController {
   // Reactive location values
   var userLat = 0.0.obs;
   var userLong = 0.0.obs;
-  var userProvince = ''.obs;
-  var userKota = ''.obs;
 
   final loginEmailController = TextEditingController();
   final loginPasswordController = TextEditingController();
@@ -39,52 +37,27 @@ class UserController extends GetxController {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// 🧭 Ambil lokasi user + izin lokasi
-  Future<void> getUserLocation() async {
+  Future<bool> getUserLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // 1️⃣ Cek apakah layanan lokasi aktif
+    // 1️⃣ Cek GPS aktif
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      Get.defaultDialog(
-        title: "Lokasi Tidak Aktif",
-        middleText: "Silakan aktifkan layanan lokasi (GPS) untuk melanjutkan.",
-        textConfirm: "Aktifkan",
-        textCancel: "Batal",
-        onConfirm: () {
-          Geolocator.openLocationSettings();
-          Get.back();
-        },
-      );
-      return;
+      await Geolocator.openLocationSettings(); // langsung masuk ke halaman GPS
+      return false;
     }
 
-    // 2️⃣ Minta izin lokasi
+    // 2️⃣ Izin Lokasi
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        Get.defaultDialog(
-          title: "Izin Diperlukan",
-          middleText:
-              "Aplikasi membutuhkan akses lokasi. Aktifkan izin lokasi di pengaturan.",
-          textConfirm: "Buka Pengaturan",
-          textCancel: "Batal",
-          onConfirm: () {
-            Geolocator.openAppSettings();
-            Get.back();
-          },
-        );
-        return;
-      }
+      if (permission == LocationPermission.denied) return false;
     }
 
-    if (permission == LocationPermission.deniedForever) {
-      Get.snackbar('Error', 'Izin lokasi ditolak permanen');
-      return;
-    }
+    if (permission == LocationPermission.deniedForever) return false;
 
-    // 3️⃣ Ambil lokasi
+    // 3️⃣ Ambil Lokasi
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
@@ -92,29 +65,10 @@ class UserController extends GetxController {
     userLat.value = position.latitude;
     userLong.value = position.longitude;
 
-    print('Latitude: ${userLat.value}, Longitude: ${userLong.value}');
-
-    // 4️⃣ Ambil nama provinsi & kota dari koordinat
-    await getAddressFromLatLong(userLat.value, userLong.value);
+    return true; // ⬅ WAJIB ADA
   }
 
   /// 🌍 Ambil provinsi & kota dari lat/long
-  Future<void> getAddressFromLatLong(double lat, double long) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(lat, long);
-
-      if (placemarks.isNotEmpty) {
-        final Placemark place = placemarks.first;
-        userProvince.value = place.administrativeArea ?? '';
-        userKota.value = place.locality ?? place.subAdministrativeArea ?? '';
-        print('📍 Kota: ${userKota.value}, Provinsi: ${userProvince.value}');
-      } else {
-        print('❌ Tidak ada hasil geocoding.');
-      }
-    } catch (e) {
-      print('❌ Gagal mendapatkan alamat: $e');
-    }
-  }
 
   Future<void> registerUser() async {
     if (isLoading.value) return;
@@ -160,8 +114,6 @@ class UserController extends GetxController {
         alergiObat: alergiController.text.trim(),
         userAlamat: alamatController.text.trim(),
         userPhone: kontakController.text.trim(),
-        userProvince: userProvince.value,
-        userKota: userKota.value,
         userSex: jenisKelamin.value,
         userFCM: fcmToken ?? '',
         userLocation: GeoPoint(userLat.value, userLong.value),
@@ -231,22 +183,22 @@ class UserController extends GetxController {
       return;
     }
     if (userLat.value == 0.0 && userLong.value == 0.0) {
-      await getUserLocation();
+      bool lokasiOK = await getUserLocation();
+      if (!lokasiOK) {
+        isLoading.value = false;
+        return;
+      }
     }
 
     try {
-      isLoading.value = true; // ⏳ Mulai loading
+      isLoading.value = true;
 
-      // 🔹 Login ke Firebase Auth
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: loginEmailController.text.trim(),
         password: loginPasswordController.text.trim(),
       );
 
-      // 🔹 Dapatkan FCM terbaru (optional tapi direkomendasikan)
       final fcmToken = await FirebaseMessaging.instance.getToken();
-
-      // 🔹 Update data di Firestore (terutama lastUpdated dan FCM)
 
       await _firestore
           .collection('users')
@@ -254,8 +206,6 @@ class UserController extends GetxController {
           .update({
             'userFCM': fcmToken ?? '',
             'userLocation': GeoPoint(userLat.value, userLong.value),
-            'userProvince': userProvince.value,
-            'userKota': userKota.value,
             'lastUpdated': FieldValue.serverTimestamp(),
           });
 
@@ -291,6 +241,8 @@ class UserController extends GetxController {
     }
   }
 
+  
+
   void clearForm() {
     emailController.clear();
     usernameController.clear();
@@ -299,16 +251,12 @@ class UserController extends GetxController {
     kontakController.clear();
     penyakitController.clear();
     alergiController.clear();
-
     loginEmailController.clear();
     loginPasswordController.clear();
-
     golDarah.value = '';
     jenisKelamin.value = '';
     userLat.value = 0.0;
     userLong.value = 0.0;
-    userProvince.value = '';
-    userKota.value = '';
   }
 
   @override

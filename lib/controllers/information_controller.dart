@@ -25,16 +25,22 @@ class InformationController extends GetxController {
     final items = document.findAllElements('item');
 
     return items.map((node) {
-      final title = node.findElements('title').first.text;
+      final rawTitle = node.findElements('title').first.text;
+      final title = rawTitle.split(' - ')[0];
+
       final link = node.findElements('link').first.text;
       final pubDate = node.findElements('pubDate').first.text;
-      final source = node.findElements('source').first.text;
+
+      final sourceElement = node.findElements('source').first;
+      final sourceName = sourceElement.text;
+      final sourceUrl = sourceElement.getAttribute('url') ?? "";
 
       return {
         'title': title,
         'link': link,
         'pubDate': pubDate,
-        'source': source,
+        'source': sourceName,
+        'sourceUrl': sourceUrl,
       };
     }).toList();
   }

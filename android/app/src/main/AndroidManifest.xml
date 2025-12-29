@@ -66,10 +66,19 @@
 
     <!-- 🧠 Diperlukan oleh Flutter engine -->
     <queries>
+        <!-- Untuk url_launcher -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+
+        <!-- Untuk fitur text processing (jika kamu butuh) -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
         </intent>
     </queries>
+
 
 </manifest>
