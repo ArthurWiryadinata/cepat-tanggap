@@ -18,10 +18,7 @@ class MainPage extends StatelessWidget {
             navController.selectedIndex.value = index;
           },
         ),
-        
       ),
     );
-    
   }
-  
 }

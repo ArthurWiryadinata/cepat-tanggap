@@ -1,6 +1,7 @@
 import 'package:cepattanggap/firebase_options.dart';
 import 'package:cepattanggap/screens/alert_page.dart';
 import 'package:cepattanggap/screens/login_page.dart';
+import 'package:cepattanggap/controllers/iot_controller.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -36,7 +37,7 @@ void main() async {
       // 🚨 Munculkan layar merah langsung di Flutter
       navigatorKey.currentState?.push(
         MaterialPageRoute(
-          builder: (_) => FullScreenAlertPage(title: title, message: msg),
+          builder: (_) => FullScreenAlertPage(title: title, message: msg), //
         ),
       );
     }
@@ -46,6 +47,15 @@ void main() async {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// ✅ TAMBAHAN: Binding untuk inisialisasi services
+class AppBinding extends Bindings {
+  @override
+  void dependencies() {
+    // Inisialisasi FirebaseService sebagai permanent service
+    Get.put(FirebaseService(), permanent: true);
+  }
+}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -72,13 +82,15 @@ class _MyAppState extends State<MyApp> {
     final baseTextTheme = Theme.of(context).textTheme;
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey, // ✅ Tambahkan baris ini
+      navigatorKey: navigatorKey,
+      initialBinding:
+          AppBinding(), // ✅ TAMBAHKAN INI untuk inisialisasi FirebaseService
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFFAFAFA),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        textTheme: GoogleFonts.poppinsTextTheme(baseTextTheme).apply(
-          fontSizeFactor: 0.9, // ⬅️ Kurangi ukuran semua teks 10%
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        textTheme: GoogleFonts.poppinsTextTheme(
+          baseTextTheme,
+        ).apply(fontSizeFactor: 0.9),
       ),
       home: LoginPage(),
     );
