@@ -451,6 +451,7 @@ class _MapPageState extends State<MapPage> {
                   // === CARD DESKRIPSI ===
                   Card(
                     elevation: 2,
+                    color: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -623,6 +624,7 @@ class _MapPageState extends State<MapPage> {
                   if (iotDevices.isEmpty)
                     Card(
                       elevation: 2,
+                      color: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -663,6 +665,7 @@ class _MapPageState extends State<MapPage> {
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Card(
                           elevation: 2,
+                          color: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side:

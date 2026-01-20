@@ -4,8 +4,7 @@ import 'package:cepattanggap/widgets/snack_bar_custom.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart'; // ⬅️ Tambahkan ini
+import 'package:geolocator/geolocator.dart'; // ⬅️ Tambahkan ini
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 
@@ -240,8 +239,6 @@ class UserController extends GetxController {
       isLoading.value = false; // ✅ Akhiri loading
     }
   }
-
-  
 
   void clearForm() {
     emailController.clear();

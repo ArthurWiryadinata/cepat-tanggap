@@ -1,5 +1,6 @@
 import 'package:cepattanggap/controllers/location_controller.dart';
 import 'package:cepattanggap/controllers/nav_bar_controller.dart';
+import 'package:cepattanggap/controllers/sos_controller.dart';
 import 'package:cepattanggap/widgets/nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -12,6 +13,9 @@ class MainPage extends StatelessWidget {
     LocationController(),
     permanent: true,
   );
+
+  // ✅ DITAMBAHKAN: Initialize SosController di MainPage juga
+  final SosController sosController = Get.put(SosController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {

@@ -4,15 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:get/get.dart';
-import 'package:geolocator/geolocator.dart';
 import '../controllers/iot_controller.dart';
+import '../controllers/location_controller.dart';
 import '../models/iot_data_model.dart';
 import '../models/evacuation_model.dart';
 
 class DisasterMapWidget extends StatefulWidget {
-  final Function(bool)? onDisasterDetected;
-
-  const DisasterMapWidget({super.key, this.onDisasterDetected});
+  const DisasterMapWidget({super.key});
 
   @override
   State<DisasterMapWidget> createState() => _DisasterMapWidgetState();
@@ -22,15 +20,10 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
     with SingleTickerProviderStateMixin {
   late final MapController _mapController;
   late final FirebaseService _firebaseService;
+  late final LocationController _locationController;
   late AnimationController _animationController;
 
-  LatLng userLocation = LatLng(-6.2088, 106.8456);
-  bool isLoadingLocation = true;
   bool showEvacuationPoints = false;
-
-  // ✅ Real-time GPS tracking
-  StreamSubscription<Position>? _positionStreamSubscription;
-  bool isTrackingLocation = false;
 
   @override
   void initState() {
@@ -39,8 +32,10 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
 
     try {
       _firebaseService = Get.find<FirebaseService>();
+      _locationController = Get.find<LocationController>();
     } catch (e) {
       _firebaseService = Get.put(FirebaseService(), permanent: true);
+      _locationController = Get.put(LocationController(), permanent: true);
     }
 
     _animationController = AnimationController(
@@ -48,126 +43,14 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
       vsync: this,
     )..repeat();
 
-    _getUserLocation();
     _firebaseService.listenToEvacuationPoints();
-
-    // ✅ Start real-time tracking
-    _startLocationTracking();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     _mapController.dispose();
-    _positionStreamSubscription?.cancel();
     super.dispose();
-  }
-
-  // ✅ Real-time GPS Tracking
-  Future<void> _startLocationTracking() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) setState(() => isLoadingLocation = false);
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted) setState(() => isLoadingLocation = false);
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (mounted) setState(() => isLoadingLocation = false);
-        return;
-      }
-
-      // ✅ Start streaming location updates
-      const LocationSettings locationSettings = LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10, // Update setiap 10 meter
-      );
-
-      _positionStreamSubscription = Geolocator.getPositionStream(
-        locationSettings: locationSettings,
-      ).listen((Position position) {
-        if (mounted) {
-          setState(() {
-            userLocation = LatLng(position.latitude, position.longitude);
-            isLoadingLocation = false;
-            isTrackingLocation = true;
-          });
-
-          // Auto-center map ke user location
-          _mapController.move(userLocation, _mapController.camera.zoom);
-
-          // Check disaster in new location
-          _checkDisasterInRadius();
-        }
-      });
-    } catch (e) {
-      if (mounted) setState(() => isLoadingLocation = false);
-      print('Error starting location tracking: $e');
-    }
-  }
-
-  Future<void> _getUserLocation() async {
-    try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        if (mounted) setState(() => isLoadingLocation = false);
-        return;
-      }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          if (mounted) setState(() => isLoadingLocation = false);
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        if (mounted) setState(() => isLoadingLocation = false);
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      if (mounted) {
-        setState(() {
-          userLocation = LatLng(position.latitude, position.longitude);
-          isLoadingLocation = false;
-        });
-        _mapController.move(userLocation, 13.0);
-        _checkDisasterInRadius();
-      }
-    } catch (e) {
-      if (mounted) setState(() => isLoadingLocation = false);
-      print('Error getting location: $e');
-    }
-  }
-
-  // ✅ Check disaster dalam radius dan trigger callback
-  void _checkDisasterInRadius() {
-    final devicesInRadius = _firebaseService.getDevicesInRadius(
-      userLocation.latitude,
-      userLocation.longitude,
-      5.0,
-    );
-
-    final hasDisaster = devicesInRadius.any((d) => d.disasterType != null);
-
-    if (widget.onDisasterDetected != null) {
-      widget.onDisasterDetected!(hasDisaster);
-    }
   }
 
   IconData _getIconForDevice(IoTData device) {
@@ -203,7 +86,9 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      // ✅ CEK APAKAH ADA DISASTER DALAM RADIUS 5KM
+      final userLocation = _locationController.getLocationOrDefault();
+
+      // Check apakah ada disaster dalam radius 5km
       final devicesInRadius = _firebaseService.getDevicesInRadius(
         userLocation.latitude,
         userLocation.longitude,
@@ -211,12 +96,12 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
       );
       final hasDisaster = devicesInRadius.any((d) => d.disasterType != null);
 
-      // ✅ JIKA TIDAK ADA DISASTER, RETURN EMPTY WIDGET (HIDE)
+      // Jika tidak ada disaster, hide widget
       if (!hasDisaster) {
-        return SizedBox.shrink(); // Widget tersembunyi
+        return SizedBox.shrink();
       }
 
-      // ✅ JIKA ADA DISASTER, TAMPILKAN WIDGET
+      // Jika ada disaster, tampilkan widget
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -259,7 +144,7 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                               color: Colors.red,
                             ),
                           ),
-                          if (isTrackingLocation) ...[
+                          if (_locationController.isTrackingLocation.value) ...[
                             SizedBox(width: 8),
                             Icon(
                               Icons.gps_fixed,
@@ -295,7 +180,7 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                                 ? 'Sembunyikan Titik Evakuasi'
                                 : 'Tampilkan Titik Evakuasi',
                       ),
-                      if (isLoadingLocation)
+                      if (_locationController.isLoadingLocation.value)
                         SizedBox(
                           width: 16,
                           height: 16,
@@ -306,9 +191,9 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                 ],
               ),
               SizedBox(height: 12),
-              _buildMapContainer(),
+              _buildMapContainer(userLocation, devicesInRadius, hasDisaster),
               SizedBox(height: 12),
-              _buildDisasterStatus(),
+              _buildDisasterStatus(userLocation, devicesInRadius),
             ],
           ),
         ),
@@ -316,7 +201,11 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
     });
   }
 
-  Widget _buildMapContainer() {
+  Widget _buildMapContainer(
+    LatLng userLocation,
+    List<IoTData> devicesInRadius,
+    bool hasDisaster,
+  ) {
     return Container(
       height: 200,
       decoration: BoxDecoration(
@@ -326,11 +215,6 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Obx(() {
-          final devicesInRadius = _firebaseService.getDevicesInRadius(
-            userLocation.latitude,
-            userLocation.longitude,
-            5.0,
-          );
           final evacuationInRadius =
               showEvacuationPoints
                   ? _firebaseService.getEvacuationPointsInRadius(
@@ -339,9 +223,6 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                     5.0,
                   )
                   : <EvacuationPoint>[];
-          final hasDisaster = devicesInRadius.any(
-            (d) => d.disasterType != null,
-          );
 
           return Stack(
             children: [
@@ -447,7 +328,7 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                               color: Colors.blue,
                               size: 40,
                             ),
-                            if (isTrackingLocation)
+                            if (_locationController.isTrackingLocation.value)
                               Positioned(
                                 top: 0,
                                 right: 0,
@@ -493,6 +374,7 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                                   () => _showEvacuationDetailSheet(
                                     context,
                                     point,
+                                    userLocation,
                                   ),
                               child: Stack(
                                 children: [
@@ -519,6 +401,28 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
                   ),
                 ],
               ),
+
+              // ✅ TOMBOL FULLSCREEN (kiri atas)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: FloatingActionButton(
+                  heroTag: 'fullscreen',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    Get.to(
+                      () => FullscreenMapPage(
+                        userLocation: userLocation,
+                        devicesInRadius: devicesInRadius,
+                        showEvacuationPoints: showEvacuationPoints,
+                      ),
+                    );
+                  },
+                  child: Icon(Icons.fullscreen, color: Colors.black87),
+                ),
+              ),
+
               Positioned(
                 right: 8,
                 bottom: 60,
@@ -627,13 +531,11 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
     );
   }
 
-  Widget _buildDisasterStatus() {
+  Widget _buildDisasterStatus(
+    LatLng userLocation,
+    List<IoTData> devicesInRadius,
+  ) {
     return Obx(() {
-      final devicesInRadius = _firebaseService.getDevicesInRadius(
-        userLocation.latitude,
-        userLocation.longitude,
-        5.0,
-      );
       final disasterDevices =
           devicesInRadius.where((d) => d.disasterType != null).toList();
 
@@ -644,49 +546,54 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
 
       return Column(
         children: [
-          GestureDetector(
-            onTap: () => _showDisasterDetail(context, disasterDevices.first),
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red, width: 2),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.dangerous, color: Colors.red, size: 20),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Darurat',
-                          style: TextStyle(
-                            color: Colors.red,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+          if (disasterDevices.isNotEmpty)
+            GestureDetector(
+              onTap: () => _showDisasterDetail(context, disasterDevices.first),
+              child: Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red, width: 2),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.dangerous, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Darurat',
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '${disasterDevices.length} lokasi terdampak - Tap untuk detail',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ],
+                          Text(
+                            '${disasterDevices.length} lokasi terdampak - Tap untuk detail',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Icon(Icons.arrow_forward_ios, size: 16),
-                ],
+                    Icon(Icons.arrow_forward_ios, size: 16),
+                  ],
+                ),
               ),
             ),
-          ),
           if (nearestEvacuation != null) ...[
             SizedBox(height: 8),
             GestureDetector(
               onTap: () {
                 setState(() => showEvacuationPoints = true);
-                _showEvacuationDetailSheet(context, nearestEvacuation);
+                _showEvacuationDetailSheet(
+                  context,
+                  nearestEvacuation,
+                  userLocation,
+                );
               },
               child: Container(
                 padding: EdgeInsets.all(8),
@@ -744,7 +651,454 @@ class _DisasterMapWidgetState extends State<DisasterMapWidget>
     );
   }
 
-  void _showEvacuationDetailSheet(BuildContext context, EvacuationPoint point) {
+  void _showEvacuationDetailSheet(
+    BuildContext context,
+    EvacuationPoint point,
+    LatLng userLocation,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) =>
+              EvacuationDetailSheet(point: point, userLocation: userLocation),
+    );
+  }
+}
+
+// ===== FULLSCREEN MAP PAGE =====
+class FullscreenMapPage extends StatefulWidget {
+  final LatLng userLocation;
+  final List<IoTData> devicesInRadius;
+  final bool showEvacuationPoints;
+
+  const FullscreenMapPage({
+    super.key,
+    required this.userLocation,
+    required this.devicesInRadius,
+    this.showEvacuationPoints = false,
+  });
+
+  @override
+  State<FullscreenMapPage> createState() => _FullscreenMapPageState();
+}
+
+class _FullscreenMapPageState extends State<FullscreenMapPage>
+    with SingleTickerProviderStateMixin {
+  late final MapController _mapController;
+  late final FirebaseService _firebaseService;
+  late final LocationController _locationController;
+  late AnimationController _animationController;
+  late bool showEvacuationPoints;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+    _firebaseService = Get.find<FirebaseService>();
+    _locationController = Get.find<LocationController>();
+    showEvacuationPoints = widget.showEvacuationPoints;
+
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  IconData _getIconForDevice(IoTData device) {
+    final disaster = device.disasterType;
+    if (disaster == null) return Icons.check_circle;
+    switch (disaster) {
+      case DisasterType.earthquake:
+        return Icons.warning_amber;
+      case DisasterType.flood:
+        return Icons.water;
+      case DisasterType.fire:
+        return Icons.local_fire_department;
+      default:
+        return Icons.emergency;
+    }
+  }
+
+  Color _getColorForDevice(IoTData device) {
+    final disaster = device.disasterType;
+    if (disaster == null) return Colors.green;
+    switch (disaster) {
+      case DisasterType.earthquake:
+        return Colors.orange;
+      case DisasterType.flood:
+        return Colors.blue;
+      case DisasterType.fire:
+        return Colors.red;
+      default:
+        return Colors.red.shade900;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          // Fullscreen Map
+          Obx(() {
+            final userLocation = _locationController.getLocationOrDefault();
+            final evacuationInRadius =
+                showEvacuationPoints
+                    ? _firebaseService.getEvacuationPointsInRadius(
+                      userLocation.latitude,
+                      userLocation.longitude,
+                      5.0,
+                    )
+                    : <EvacuationPoint>[];
+
+            return FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: widget.userLocation,
+                initialZoom: 14.0,
+                minZoom: 10.0,
+                maxZoom: 18.0,
+                interactionOptions: const InteractionOptions(
+                  flags: InteractiveFlag.all,
+                ),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate:
+                      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                  subdomains: const ['a', 'b', 'c', 'd'],
+                  maxZoom: 19,
+                  userAgentPackageName: 'id.alertquake.app',
+                ),
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: userLocation,
+                      radius: 5000,
+                      useRadiusInMeter: true,
+                      color: Colors.blue.withOpacity(0.1),
+                      borderColor: Colors.blue.withOpacity(0.3),
+                      borderStrokeWidth: 2,
+                    ),
+                  ],
+                ),
+                AnimatedBuilder(
+                  animation: _animationController,
+                  builder: (context, child) {
+                    return CircleLayer(
+                      circles:
+                          widget.devicesInRadius
+                              .where((d) => d.disasterType != null)
+                              .map((device) {
+                                final scale =
+                                    1.0 + (_animationController.value * 0.5);
+                                final opacity =
+                                    1.0 - _animationController.value;
+                                return CircleMarker(
+                                  point: device.position,
+                                  radius: 40 * scale,
+                                  useRadiusInMeter: false,
+                                  color: _getColorForDevice(
+                                    device,
+                                  ).withOpacity(0.3 * opacity),
+                                  borderColor: _getColorForDevice(
+                                    device,
+                                  ).withOpacity(0.6 * opacity),
+                                  borderStrokeWidth: 2,
+                                );
+                              })
+                              .toList(),
+                    );
+                  },
+                ),
+                if (showEvacuationPoints && evacuationInRadius.isNotEmpty)
+                  AnimatedBuilder(
+                    animation: _animationController,
+                    builder: (context, child) {
+                      return CircleLayer(
+                        circles:
+                            evacuationInRadius.map((point) {
+                              final scale =
+                                  1.0 + (_animationController.value * 0.3);
+                              final opacity = 1.0 - _animationController.value;
+                              return CircleMarker(
+                                point: point.position,
+                                radius: 30 * scale,
+                                useRadiusInMeter: false,
+                                color: Colors.green.withOpacity(0.2 * opacity),
+                                borderColor: Colors.green.withOpacity(
+                                  0.5 * opacity,
+                                ),
+                                borderStrokeWidth: 2,
+                              );
+                            }).toList(),
+                      );
+                    },
+                  ),
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: userLocation,
+                      width: 50,
+                      height: 50,
+                      child: Stack(
+                        children: [
+                          const Icon(
+                            Icons.person_pin_circle,
+                            color: Colors.blue,
+                            size: 50,
+                          ),
+                          if (_locationController.isTrackingLocation.value)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    ...widget.devicesInRadius.map(
+                      (device) => Marker(
+                        point: device.position,
+                        width: 45,
+                        height: 45,
+                        child: GestureDetector(
+                          onTap: () => _showDisasterDetail(context, device),
+                          child: Icon(
+                            _getIconForDevice(device),
+                            color: _getColorForDevice(device),
+                            size: 45,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (showEvacuationPoints)
+                      ...evacuationInRadius.map(
+                        (point) => Marker(
+                          point: point.position,
+                          width: 50,
+                          height: 50,
+                          child: GestureDetector(
+                            onTap:
+                                () => _showEvacuationDetailSheet(
+                                  context,
+                                  point,
+                                  userLocation,
+                                ),
+                            child: Stack(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: Colors.green,
+                                  size: 50,
+                                ),
+                                Positioned(
+                                  top: 10,
+                                  left: 12,
+                                  child: Icon(
+                                    Icons.emergency,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            );
+          }),
+
+          // Top Bar
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Back Button
+                  FloatingActionButton(
+                    heroTag: 'back',
+                    mini: true,
+                    backgroundColor: Colors.white,
+                    onPressed: () => Get.back(),
+                    child: Icon(
+                      Icons.chevron_left,
+                      color: Colors.black87,
+                      size: 28,
+                    ),
+                  ),
+
+                  // Toggle Evacuation Points
+                  FloatingActionButton(
+                    heroTag: 'toggleEvac',
+                    mini: true,
+                    backgroundColor: Colors.white,
+                    onPressed: () {
+                      setState(() {
+                        showEvacuationPoints = !showEvacuationPoints;
+                      });
+                    },
+                    child: Icon(
+                      showEvacuationPoints
+                          ? Icons.location_on
+                          : Icons.location_off,
+                      color: showEvacuationPoints ? Colors.green : Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Zoom Controls
+          Positioned(
+            right: 16,
+            bottom: 100,
+            child: Column(
+              children: [
+                FloatingActionButton(
+                  heroTag: 'zoomInFull',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    final currentZoom = _mapController.camera.zoom;
+                    _mapController.move(
+                      _mapController.camera.center,
+                      currentZoom + 1,
+                    );
+                  },
+                  child: Icon(Icons.add, color: Colors.black87),
+                ),
+                SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'zoomOutFull',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    final currentZoom = _mapController.camera.zoom;
+                    _mapController.move(
+                      _mapController.camera.center,
+                      currentZoom - 1,
+                    );
+                  },
+                  child: Icon(Icons.remove, color: Colors.black87),
+                ),
+                SizedBox(height: 8),
+                FloatingActionButton(
+                  heroTag: 'centerMap',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  onPressed: () {
+                    _mapController.move(
+                      _locationController.getLocationOrDefault(),
+                      14.0,
+                    );
+                  },
+                  child: Icon(Icons.my_location, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
+
+          // Info Box
+          Positioned(
+            top: 80,
+            left: 16,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.red, size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        '${widget.devicesInRadius.where((d) => d.disasterType != null).length} Bencana',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (showEvacuationPoints)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Icon(Icons.emergency, color: Colors.green, size: 16),
+                          SizedBox(width: 6),
+                          Text(
+                            '${_firebaseService.getEvacuationPointsInRadius(widget.userLocation.latitude, widget.userLocation.longitude, 5.0).length} Titik Evakuasi',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisasterDetail(BuildContext context, IoTData device) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DisasterDetailSheet(device: device),
+    );
+  }
+
+  void _showEvacuationDetailSheet(
+    BuildContext context,
+    EvacuationPoint point,
+    LatLng userLocation,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

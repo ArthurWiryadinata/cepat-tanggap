@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:math';
 import '../models/iot_data_model.dart';
-import '../models/evacuation_model.dart'; // ✅ TAMBAHKAN INI
+import '../models/evacuation_model.dart';
 
+/// ✅ Firebase Service - Handle IoT data dan Evacuation points
+/// AlertService dipindah ke file terpisah (alert_service.dart)
 class FirebaseService extends GetxService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -17,7 +19,7 @@ class FirebaseService extends GetxService {
   final RxBool isLoading = true.obs;
   final RxString error = ''.obs;
 
-  // ✅ Evacuation Points Observables
+  // Evacuation Points Observables
   final RxList<EvacuationPoint> evacuationPoints = <EvacuationPoint>[].obs;
   final RxBool isLoadingEvacuation = true.obs;
 
@@ -26,7 +28,7 @@ class FirebaseService extends GetxService {
     super.onInit();
     _setupFirebaseMessaging();
     listenToIoTDataWithImages();
-    listenToEvacuationPoints(); // ✅ TAMBAHKAN INI
+    listenToEvacuationPoints();
   }
 
   Future<void> _setupFirebaseMessaging() async {
@@ -167,7 +169,6 @@ class FirebaseService extends GetxService {
     }
   }
 
-  // ✅ LISTEN TO EVACUATION POINTS
   void listenToEvacuationPoints() {
     try {
       _firestore
@@ -212,54 +213,6 @@ class FirebaseService extends GetxService {
     } catch (e) {
       print('❌ Error setting up evacuation listener: $e');
       isLoadingEvacuation.value = false;
-    }
-  }
-
-  void listenToIoTData() {
-    try {
-      _firestore
-          .collection('IOT')
-          .snapshots()
-          .listen(
-            (QuerySnapshot snapshot) {
-              isLoading.value = true;
-              error.value = '';
-
-              List<IoTData> devices = [];
-
-              for (var doc in snapshot.docs) {
-                try {
-                  final data = doc.data() as Map<String, dynamic>;
-
-                  print('=== PARSING DOCUMENT: ${doc.id} ===');
-
-                  final iotData = IoTData.fromFirestoreStandard(data);
-                  devices.add(iotData);
-
-                  print('✅ Parsed: ${iotData.toString()}');
-                  print('==============================\n');
-
-                  _checkForDisaster(iotData);
-                } catch (e) {
-                  print('❌ Error parsing document ${doc.id}: $e');
-                }
-              }
-
-              iotDevices.value = devices;
-              isLoading.value = false;
-
-              print('✅ Updated IoT devices: ${devices.length} devices');
-            },
-            onError: (error) {
-              print('❌ Error listening to IoT data: $error');
-              this.error.value = error.toString();
-              isLoading.value = false;
-            },
-          );
-    } catch (e) {
-      print('❌ Error setting up listener: $e');
-      error.value = e.toString();
-      isLoading.value = false;
     }
   }
 
@@ -313,9 +266,6 @@ class FirebaseService extends GetxService {
           title = '🚨 BENCANA MAJEMUK - EVAKUASI!';
           break;
       }
-
-      print('🚨 DISASTER DETECTED: $title - $body');
-      _showNotification(title, '$body - Lokasi: ${data.id}');
     } else {
       print('✅ ${data.id}: ${data.iotStatus} - Kondisi Aman');
     }
@@ -461,9 +411,8 @@ class FirebaseService extends GetxService {
     return iotDevices.where((device) => device.disasterType != null).toList();
   }
 
-  // ===== ✅ EVACUATION POINTS HELPER METHODS =====
+  // ===== EVACUATION POINTS HELPER METHODS =====
 
-  /// Get evacuation points within radius
   List<EvacuationPoint> getEvacuationPointsInRadius(
     double userLat,
     double userLng,
@@ -480,7 +429,6 @@ class FirebaseService extends GetxService {
     }).toList();
   }
 
-  /// Get nearest evacuation point from user location
   EvacuationPoint? getNearestEvacuationPoint(double userLat, double userLng) {
     if (evacuationPoints.isEmpty) return null;
 
@@ -504,21 +452,28 @@ class FirebaseService extends GetxService {
     return nearest;
   }
 
-  /// Get distance to specific evacuation point (in km)
   double getDistanceToEvacuationPoint(
     double userLat,
     double userLng,
-    EvacuationPoint point,
+    dynamic point,
   ) {
-    return _calculateDistance(
-      userLat,
-      userLng,
-      point.latitude,
-      point.longitude,
-    );
+    // Handle both EvacuationPoint and IoTData
+    double targetLat;
+    double targetLng;
+
+    if (point is EvacuationPoint) {
+      targetLat = point.latitude;
+      targetLng = point.longitude;
+    } else if (point is IoTData) {
+      targetLat = point.latitude;
+      targetLng = point.longitude;
+    } else {
+      return double.infinity;
+    }
+
+    return _calculateDistance(userLat, userLng, targetLat, targetLng);
   }
 
-  /// Get all evacuation points sorted by distance
   List<EvacuationPoint> getEvacuationPointsSortedByDistance(
     double userLat,
     double userLng,
@@ -543,14 +498,12 @@ class FirebaseService extends GetxService {
         .toList();
   }
 
-  /// Get evacuation points by province
   List<EvacuationPoint> getEvacuationPointsByProvince(String province) {
     return evacuationPoints.where((point) {
       return point.evacProv.toLowerCase().contains(province.toLowerCase());
     }).toList();
   }
 
-  /// Get evacuation points by city
   List<EvacuationPoint> getEvacuationPointsByCity(String city) {
     return evacuationPoints.where((point) {
       return point.lokasiKota.toLowerCase().contains(city.toLowerCase());
@@ -559,14 +512,13 @@ class FirebaseService extends GetxService {
 
   // ===== UTILITY METHODS =====
 
-  /// Calculate distance between two coordinates using Haversine formula
   double _calculateDistance(
     double lat1,
     double lon1,
     double lat2,
     double lon2,
   ) {
-    const double earthRadius = 6371; // in kilometers
+    const double earthRadius = 6371;
 
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
