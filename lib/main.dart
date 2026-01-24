@@ -1,7 +1,7 @@
 import 'package:cepattanggap/firebase_options.dart';
 import 'package:cepattanggap/screens/login_page.dart';
 import 'package:cepattanggap/screens/main_page.dart';
-import 'package:cepattanggap/controllers/alert_service.dart';
+import 'package:cepattanggap/controllers/Notification_Service.dart';
 import 'package:cepattanggap/controllers/location_controller.dart';
 import 'package:cepattanggap/controllers/sos_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';

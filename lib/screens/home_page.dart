@@ -1,7 +1,6 @@
 import 'package:cepattanggap/controllers/information_controller.dart';
 import 'package:cepattanggap/controllers/panduan_evac_controller.dart';
 import 'package:cepattanggap/controllers/sos_controller.dart';
-import 'package:cepattanggap/controllers/weather_controller.dart';
 import 'package:cepattanggap/models/weather_model.dart';
 import 'package:cepattanggap/screens/disaster_map.dart';
 import 'package:cepattanggap/screens/panduan_evac.dart';
@@ -25,7 +24,6 @@ class _HomePageState extends State<HomePage> {
     permanent: true,
   );
   final SosController sosController = Get.find<SosController>();
-  final WeatherController weatherController = Get.put(WeatherController());
 
   @override
   Widget build(BuildContext context) {
@@ -199,24 +197,24 @@ class _HomePageState extends State<HomePage> {
 
                     // CUACA HARI INI
                     Obx(() {
-                      if (weatherController.isLoading.value) {
+                      if (informationController.isWeatherLoading.value) {
                         return _buildWeatherLoadingCard();
                       }
 
-                      if (weatherController.errorMessage.value.isNotEmpty) {
+                      if (informationController.errorMessage.value.isNotEmpty) {
                         return _buildWeatherErrorCard(
-                          weatherController.errorMessage.value,
+                          informationController.errorMessage.value,
                         );
                       }
 
-                      if (weatherController.weatherData.value == null) {
+                      if (informationController.weatherData.value == null) {
                         return _buildWeatherErrorCard(
                           'Data cuaca tidak tersedia',
                         );
                       }
 
                       return _buildWeatherCard(
-                        weatherController.weatherData.value!,
+                        informationController.weatherData.value!,
                       );
                     }),
 
@@ -386,7 +384,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.refresh),
-                  onPressed: () => weatherController.refreshWeather(),
+                  onPressed: () => informationController.refreshWeather(),
                   tooltip: 'Refresh cuaca',
                 ),
               ],
@@ -622,7 +620,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 10),
             ElevatedButton.icon(
-              onPressed: () => weatherController.refreshWeather(),
+              onPressed: () => informationController.refreshWeather(),
               icon: const Icon(Icons.refresh),
               label: const Text('Coba Lagi'),
             ),
